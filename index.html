@@ -255,6 +255,39 @@ if (window.Telegram && Telegram.WebApp) {
   Telegram.WebApp.expand();
   if (Telegram.WebApp.disableVerticalSwipes) Telegram.WebApp.disableVerticalSwipes();
 }
+// ===== СЕКРЕТНАЯ ПАНЕЛЬ ВЛАДЕЛЬЦА ======
+const ADMIN_PASSWORD = '2026RRRFoks42'; // Твой пароль, не меняй пока, если не хочешь
+let secretTaps = 0;
+let secretTimer = null;
+
+document.getElementById('counter').addEventListener('click', () => {
+  secretTaps++;
+  clearTimeout(secretTimer);
+  secretTimer = setTimeout(() => {
+    secretTaps = 0;
+  }, 2000);
+
+  if (secretTaps >= 5) {
+    secretTaps = 0;
+    const pass = prompt('Режим владельца. Введите пароль:');
+    
+    if (pass === ADMIN_PASSWORD) {
+      const input = prompt('Сколько тапов добавить?');
+      const n = parseInt(input, 10);
+      
+      if (!isNaN(n) && n > 0) {
+        if (typeof state !== 'undefined' && typeof state.taps !== 'undefined') {
+          state.taps += n;
+          save();
+          updateUI();
+          alert('Начислено: ' + n.toLocaleString('ru-RU') + ' тапов 🔧');
+        } else {
+          alert('Ошибка: не найдена переменная state.taps. Проверь начало файла!');
+        }
+      }
+    }
+  }
+}); // <--- Вот эта скобка закрывает addEventListener. Она должна быть здесь и только здесь.
 </script>
 </body>
 </html>
