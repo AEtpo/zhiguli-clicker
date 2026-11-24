@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Жигули Кликер</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+  body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; background: linear-gradient(180deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%); color: #fff; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+  .screen { flex: 1; display: none; flex-direction: column; align-items: center; overflow-y: auto; padding: 16px; }
+  .screen.active { display: flex; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .score { font-size: 40px; font-weight: 800; color: #ffd166; text-shadow: 0 2px 10px rgba(255,209,102,.4); margin: 10px 0 4px; }
+  .per-tap { font-size: 13px; color: #aaa; margin-bottom: 12px; }
+  .tap-circle { width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #4a4a6a, #1f1f38); border: 4px solid #ffd166; display: flex; align-items: center; justify-content: center; font-size: 90px; cursor: pointer; box-shadow: 0 0 40px rgba(255,209,102,.25); transition: transform .08s ease; position: relative; overflow: hidden; }
+  .tap-circle:active { transform: scale(0.93); }
+  .plus { position: absolute; font-size: 26px; font-weight: bold; color: #ffd166; pointer-events: none; animation: fly 0.9s ease-out forwards; }
+  @keyframes fly { to { transform: translateY(-90px); opacity: 0; } }
+  .tabs { display: flex; background: rgba(0,0,0,.4); border-radius: 16px 16px 0 0; }
+  .tab { flex: 1; padding: 12px 0; text-align: center; font-size: 14px; color: #888; cursor: pointer; }
+  .tab.active { color: #ffd166; font-weight: bold; background: rgba(255,209,102,.08); }
+  .car-card { width: 100%; max-width: 420px; background: rgba(255,255,255,.06); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+  .car-card.owned { background: rgba(255,209,102,.12); border: 1px solid rgba(255,209,102,.4); }
+  .car-emoji { font-size: 34px; }
+  .car-info { flex: 1; }
+  .car-name { font-weight: 600; font-size: 15px; }
+  .car-cost { font-size: 12px; color: #aaa; }
+  .buy-btn { background: #ffd166; color: #1a1a2e; border: none; border-radius: 10px; padding: 8px 14px; font-weight: bold; cursor: pointer; font-size: 13px; }
+  .buy-btn:disabled { background: #555; color: #999; cursor: default; }
+  .leader-row { width: 100%; max-width: 420px; background: rgba(255,255,255,.06); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div id="screen-tap" class="screen active">
+  <h1>🚗 Жигули Кликер</h1>
+  <div class="score" id="score">0</div>
+  <div class="per-tap">+1 за тап</div>
+  <div class="tap-circle" id="tapBtn">🚗</div>
+</div>
+
+<div id="screen-garage" class="screen">
+  <h1>🔧 Гараж</h1>
+  <div id="garageList" style="width:100%; max-width:420px;"></div>
+</div>
+
+<div id="screen-top" class="screen">
+  <h1>🏆 Топ игроков</h1>
+  <div id="topList" style="width:100%; max-width:420px;"></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('tap', this)">🚗 Тапать</div>
+  <div class="tab" onclick="switchTab('garage', this)">🔧 Гараж</div>
+  <div class="tab" onclick="switchTab('top', this)">🏆 Топ</div>
+</div>
+
+<script>
+// Блок машин. img — путь к фото, когда зальёшь картинки на GitHub,
+// укажешь "копейка.jpg" и т.д. вместо null
+const CARS = [
+  { id: 1,  name: "ВАЗ-2101 Копейка",    cost: 0,       img: null },
+  { id: 2,  name: "ВАЗ-2102 Двойка",     cost: 100,     img: null },
+  { id: 3,  name: "ВАЗ-2103 Тройка",     cost: 300,     img: null },
+  { id: 4,  name: "ВАЗ-2106 Шестёрка",   cost: 600,     img: null },
+  { id: 5,  name: "ВАЗ-2107 Семёрка",    cost: 1000,    img: null },
+  { id: 6,  name: "ВАЗ-2108 Зубило",     cost: 1600,    img: null },
+  { id: 7,  name: "ВАЗ-2109 Девятка",    cost: 2400,    img: null },
+  { id: 8,  name: "ВАЗ-2110 Десятка",    cost: 3500,    img: null },
+  { id: 9,  name: "Лада Калина",         cost: 5000,    img: null },
+  { id: 10, name: "Лада Приора",         cost: 7000,    img: null },
+  { id: 11, name: "Лада Гранта",         cost: 9500,    img: null },
+  { id: 12, name: "Лада Веста",          cost: 12500,   img: null },
+  { id: 13, name: "Нива 4x4",            cost: 16000,   img: null },
+  { id: 14, name: "Лада Ларгус",         cost: 20000,   img: null },
+  { id: 15, name: "УАЗ Патриот",         cost: 25000,   img: null },
+];
+
+let score = 0, owned = [];
+try { score = parseInt(localStorage.zk_score||"0"); owned = JSON.parse(localStorage.zk_owned||'[1]'); } catch(e) {}
+owned = owned.length ? owned : [1];
+
+const scoreEl = document.getElementById('score');
+function save() { localStorage.zk_score = score; localStorage.zk_owned = JSON.stringify(owned); }
+function renderScore() { scoreEl.textContent = score.toLocaleString('ru-RU'); }
+
+document.getElementById('tapBtn').addEventListener('pointerdown', function(e) {
+  score++; renderScore(); save();
+  const p = document.createElement('div');
+  p.className = 'plus'; p.textContent = '+1';
+  const r = this.getBoundingClientRect();
+  p.style.left = (e.clientX - r.left - 10) + 'px';
+  p.style.top = (e.clientY - r.top - 20) + 'px';
+  this.appendChild(p);
+  setTimeout(() => p.remove(), 900);
+});
+
+function switchTab(name, el) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  if (name === 'garage') renderGarage();
+  if (name === 'top') renderTop();
+}
+
+function renderGarage() {
+  const list = document.getElementById('garageList');
+  list.innerHTML = '';
+  CARS.forEach(car => {
+    const has = owned.includes(car.id);
+    const div = document.createElement('div');
+    div.className = 'car-card' + (has ? ' owned' : '');
+    const imgHtml = car.img ? `<img src="${car.img}" style="width:52px;height:52px;border-radius:10px;object-fit:cover;">` : `<div class="car-emoji">${has ? '🚗' : '🔒'}</div>`;
+    div.innerHTML = `${imgHtml}<div class="car-info"><div class="car-name">${car.name}</div><div class="car-cost">${has ? '✅ В гараже' : car.cost.toLocaleString('ru-RU') + ' очков'}</div></div>${has ? '' : `<button class="buy-btn" ${score < car.cost ? 'disabled' : ''} onclick="buy(${car.id})">Купить</button>`}`;
+    list.appendChild(div);
+  });
+}
+
+function buy(id) {
+  const car = CARS.find(c => c.id === id);
+  if (score >= car.cost && !owned.includes(id)) {
+    score -= car.cost; owned.push(id); save(); renderScore(); renderGarage();
+  }
+}
+
+function renderTop() {
+  const list = document.getElementById('topList');
+  const me = Math.max(score, parseInt(localStorage.zk_best||"0"));
+  localStorage.zk_best = me;
+  list.innerHTML = `<div class="leader-row"><span>🫵 Ты</span><span style="color:#ffd166">${me.toLocaleString('ru-RU')}</span></div>
+  <div class="leader-row" style="color:#888; font-size:12px;"><span>Здесь появится весь топ, когда подключим общий сервер</span></div>`;
+}
+
+renderScore();
+</script>
+</body>
+</html>
