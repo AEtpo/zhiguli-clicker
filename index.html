@@ -109,7 +109,18 @@ const CARS = [
   { id:'vaz2109',    name:'ВАЗ-2109 «Девятка»',  price:300,  emoji:'🚕' },
   { id:'niva',       name:'Нива 2121',           price:700,  emoji:'🛻' },
   { id:'lada_vesta', name:'Lada Vesta',          price:1500, emoji:'🏎️' },
-  { id:'belaz',      name:'БелАЗ (легенда)',     price:5000, emoji:'🚛' }
+  { id:'belaz',      name:'БелАЗ (легенда)',     price:5000, emoji:'🚛' },
+  { id:'oka',       name:'Ока',                       price:300,   emoji:'🚗' },
+  { id:'vaz2107',   name:'ВАЗ-2107 «Семёрка»',        price:800,   emoji:'🚗' },
+  { id:'vaz2114',   name:'ВАЗ-2114 «Четырнадцатая»',  price:1200,  emoji:'🚙' },
+  { id:'buhanka',   name:'УАЗ «Буханка»',             price:2000,  emoji:'🚐' },
+  { id:'gaz21',     name:'ГАЗ-21 «Волга»',            price:2500,  emoji:'🚘' },
+  { id:'gaz24',     name:'ГАЗ-24',                    price:3500,  emoji:'🚘' },
+  { id:'patriot',   name:'УАЗ «Патриот»',             price:4500,  emoji:'🚙' },
+  { id:'granta',    name:'Лада Гранта',               price:6000,  emoji:'🚗' },
+  { id:'largus',    name:'Лада Ларгус',               price:7000,  emoji:'🚓' },
+  { id:'kamaz',     name:'КамАЗ',                     price:9000,  emoji:'🚛' },
+  { id:'priora',    name:'⭐ Премиум Лада Приора',     price:15000, emoji:'🏎️' }
 ];
 
 const UPGRADES = [
@@ -221,7 +232,7 @@ function updateUI() {
 // ---------- ТАПЫ ----------
 const tapZone = document.getElementById('tapZone');
 function doTap(x, y) {
-  state.taps += tapValue();
+  state.taps += tapValue() + (state.activeCar === 'priora' ? 9 : 0);
   updateUI();
   const f = document.createElement('div');
   f.className = 'float';
