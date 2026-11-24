@@ -4,135 +4,257 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Жигули Кликер</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
-  body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; background: linear-gradient(180deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%); color: #fff; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-  .screen { flex: 1; display: none; flex-direction: column; align-items: center; overflow-y: auto; padding: 16px; }
-  .screen.active { display: flex; }
-  h1 { font-size: 22px; margin-bottom: 4px; }
-  .score { font-size: 40px; font-weight: 800; color: #ffd166; text-shadow: 0 2px 10px rgba(255,209,102,.4); margin: 10px 0 4px; }
-  .per-tap { font-size: 13px; color: #aaa; margin-bottom: 12px; }
-  .tap-circle { width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #4a4a6a, #1f1f38); border: 4px solid #ffd166; display: flex; align-items: center; justify-content: center; font-size: 90px; cursor: pointer; box-shadow: 0 0 40px rgba(255,209,102,.25); transition: transform .08s ease; position: relative; overflow: hidden; }
-  .tap-circle:active { transform: scale(0.93); }
-  .plus { position: absolute; font-size: 26px; font-weight: bold; color: #ffd166; pointer-events: none; animation: fly 0.9s ease-out forwards; }
-  @keyframes fly { to { transform: translateY(-90px); opacity: 0; } }
-  .tabs { display: flex; background: rgba(0,0,0,.4); border-radius: 16px 16px 0 0; }
-  .tab { flex: 1; padding: 12px 0; text-align: center; font-size: 14px; color: #888; cursor: pointer; }
-  .tab.active { color: #ffd166; font-weight: bold; background: rgba(255,209,102,.08); }
-  .car-card { width: 100%; max-width: 420px; background: rgba(255,255,255,.06); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
-  .car-card.owned { background: rgba(255,209,102,.12); border: 1px solid rgba(255,209,102,.4); }
-  .car-emoji { font-size: 34px; }
-  .car-info { flex: 1; }
-  .car-name { font-weight: 600; font-size: 15px; }
-  .car-cost { font-size: 12px; color: #aaa; }
-  .buy-btn { background: #ffd166; color: #1a1a2e; border: none; border-radius: 10px; padding: 8px 14px; font-weight: bold; cursor: pointer; font-size: 13px; }
-  .buy-btn:disabled { background: #555; color: #999; cursor: default; }
-  .leader-row { width: 100%; max-width: 420px; background: rgba(255,255,255,.06); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; font-size: 14px; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    background: linear-gradient(180deg, #14142b 0%, #1a1a3e 60%, #1e2a52 100%);
+    color:#fff; min-height:100vh; display:flex; flex-direction:column; overflow:hidden;
+    user-select:none;
+  }
+  .app { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+
+  /* ---------- ВКЛАДКА ТАПАТЬ ---------- */
+  .tap-screen { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:16px; }
+  h1 { font-size:22px; }
+  .score { font-size:52px; font-weight:800; color:#ffd54a; text-shadow:0 2px 12px rgba(255,200,60,.35); }
+  .per-tap { font-size:14px; color:#aab; }
+  .car-circle {
+    width:230px; height:230px; border-radius:50%;
+    background: radial-gradient(circle at 50% 35%, #2c2c55, #1c1c3a 70%);
+    border:3px solid #ffb43a; box-shadow:0 0 40px rgba(255,180,58,.25), inset 0 0 30px rgba(0,0,0,.5);
+    display:flex; align-items:center; justify-content:center; font-size:78px; cursor:pointer;
+    transition:transform .08s; touch-action:manipulation;
+  }
+  .car-circle:active { transform:scale(.94); }
+  .float { position:fixed; font-size:20px; color:#ffd54a; font-weight:700; pointer-events:none; animation:fly .8s ease-out forwards; z-index:99; }
+  @keyframes fly { to { transform:translateY(-70px); opacity:0; } }
+
+  /* ---------- ЭКРАНЫ ГАРАЖА / ТЮНИНГА / ТОПА ---------- */
+  .screen { flex:1; overflow-y:auto; padding:16px; display:none; }
+  .screen.active { display:block; }
+  .screen h2 { margin-bottom:12px; font-size:18px; }
+  .car-card, .tune-card {
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+    border-radius:14px; padding:12px 14px; margin-bottom:10px;
+  }
+  .car-card.owned { border-color:#4caf78; background:rgba(76,175,120,.12); }
+  .car-card.locked { opacity:.55; }
+  .car-name { font-weight:700; font-size:16px; }
+  .car-price { color:#ffd54a; font-size:14px; margin-top:4px; }
+  .owned-tag { color:#4caf78; font-size:13px; }
+  .tune-title { font-weight:700; font-size:16px; display:flex; justify-content:space-between; }
+  .tune-lvl { color:#8ab4ff; font-size:13px; }
+  .tune-desc { font-size:13px; color:#aab; margin:6px 0 8px; }
+  .buy-btn {
+    background:#ffb43a; border:none; color:#1a1a2e; font-weight:700; font-size:14px;
+    padding:8px 16px; border-radius:10px; cursor:pointer; font-family:inherit;
+  }
+  .buy-btn:disabled { background:#555; color:#999; cursor:default; }
+  .empty { color:#889; font-size:14px; text-align:center; padding:30px 10px; }
+
+  /* ---------- НИЖНЯЯ НАВИГАЦИЯ ---------- */
+  nav { display:flex; background:rgba(20,20,40,.95); border-top:1px solid rgba(255,255,255,.1); }
+  nav button {
+    flex:1; padding:13px 4px; background:none; border:none; color:#889;
+    font-size:14px; font-weight:600; cursor:pointer; font-family:inherit;
+  }
+  nav button.active { color:#ffd54a; }
 </style>
 </head>
 <body>
+<div class="app">
 
-<div id="screen-tap" class="screen active">
-  <h1>🚗 Жигули Кликер</h1>
-  <div class="score" id="score">0</div>
-  <div class="per-tap">+1 за тап</div>
-  <div class="tap-circle" id="tapBtn">🚗</div>
-</div>
+  <!-- ЭКРАН ТАПАТЬ -->
+  <div class="tap-screen" id="tapScreen">
+    <h1>🚗 Жигули Кликер</h1>
+    <div class="score" id="score">0</div>
+    <div class="per-tap">+<span id="perTap">1</span> за тап</div>
+    <div class="car-circle" id="tapZone">🚗</div>
+  </div>
 
-<div id="screen-garage" class="screen">
-  <h1>🔧 Гараж</h1>
-  <div id="garageList" style="width:100%; max-width:420px;"></div>
-</div>
+  <!-- ЭКРАН ГАРАЖ -->
+  <div class="screen" id="garageScreen">
+    <h2>🔧 Твой гараж (<span id="garageCount">1</span>/99)</h2>
+    <div id="carList"></div>
+  </div>
 
-<div id="screen-top" class="screen">
-  <h1>🏆 Топ игроков</h1>
-  <div id="topList" style="width:100%; max-width:420px;"></div>
-</div>
+  <!-- ЭКРАН ТЮНИНГ -->
+  <div class="screen" id="tuneScreen">
+    <h2>⚙️ Тюнинг</h2>
+    <div id="tuneList"></div>
+  </div>
 
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('tap', this)">🚗 Тапать</div>
-  <div class="tab" onclick="switchTab('garage', this)">🔧 Гараж</div>
-  <div class="tab" onclick="switchTab('top', this)">🏆 Топ</div>
+  <!-- ЭКРАН ТОП -->
+  <div class="screen" id="topScreen">
+    <h2>🏆 Топ игроков</h2>
+    <div class="empty">Пока в одиночном зачёте — ты и твой рекорд.<br>Скоро подключим общий сервер и посоревнуемся!</div>
+  </div>
+
+  <!-- НАВИГАЦИЯ -->
+  <nav>
+    <button class="active" data-tab="tapScreen">🚗 Тапать</button>
+    <button data-tab="garageScreen">🔧 Гараж</button>
+    <button data-tab="tuneScreen">⚙️ Тюнинг</button>
+    <button data-tab="topScreen">🏆 Топ</button>
+  </nav>
 </div>
 
 <script>
-// Блок машин. img — путь к фото, когда зальёшь картинки на GitHub,
-// укажешь "копейка.jpg" и т.д. вместо null
+// ---------- ДАННЫЕ ----------
 const CARS = [
-  { id: 1,  name: "ВАЗ-2101 Копейка",    cost: 0,       img: null },
-  { id: 2,  name: "ВАЗ-2102 Двойка",     cost: 100,     img: null },
-  { id: 3,  name: "ВАЗ-2103 Тройка",     cost: 300,     img: null },
-  { id: 4,  name: "ВАЗ-2106 Шестёрка",   cost: 600,     img: null },
-  { id: 5,  name: "ВАЗ-2107 Семёрка",    cost: 1000,    img: null },
-  { id: 6,  name: "ВАЗ-2108 Зубило",     cost: 1600,    img: null },
-  { id: 7,  name: "ВАЗ-2109 Девятка",    cost: 2400,    img: null },
-  { id: 8,  name: "ВАЗ-2110 Десятка",    cost: 3500,    img: null },
-  { id: 9,  name: "Лада Калина",         cost: 5000,    img: null },
-  { id: 10, name: "Лада Приора",         cost: 7000,    img: null },
-  { id: 11, name: "Лада Гранта",         cost: 9500,    img: null },
-  { id: 12, name: "Лада Веста",          cost: 12500,   img: null },
-  { id: 13, name: "Нива 4x4",            cost: 16000,   img: null },
-  { id: 14, name: "Лада Ларгус",         cost: 20000,   img: null },
-  { id: 15, name: "УАЗ Патриот",         cost: 25000,   img: null },
+  { id:'vaz2101',    name:'ВАЗ-2101 «Копейка»',  price:0,    emoji:'🚗' },
+  { id:'vaz2106',    name:'ВАЗ-2106 «Шестёрка»', price:100,  emoji:'🚙' },
+  { id:'vaz2109',    name:'ВАЗ-2109 «Девятка»',  price:300,  emoji:'🚕' },
+  { id:'niva',       name:'Нива 2121',           price:700,  emoji:'🛻' },
+  { id:'lada_vesta', name:'Lada Vesta',          price:1500, emoji:'🏎️' },
+  { id:'belaz',      name:'БелАЗ (легенда)',     price:5000, emoji:'🚛' }
 ];
 
-let score = 0, owned = [];
-try { score = parseInt(localStorage.zk_score||"0"); owned = JSON.parse(localStorage.zk_owned||'[1]'); } catch(e) {}
-owned = owned.length ? owned : [1];
+const UPGRADES = [
+  { id:'engine',  name:'Спортивный движок', desc:'Классика: расточил мотор — больше тапов.',  base:50,  mult:1.6, effect:1 },
+  { id:'turbo',   name:'Турбо-наддув',      desc:'Гоняет по парку с ветерком. +к тапам.',     base:150, mult:1.7, effect:3 },
+  { id:'wheels',  name:'Литые диски',       desc:'Красота и аэродинамика за один присест.',   base:80,  mult:1.5, effect:2 },
+  { id:'spoiler', name:'Спойлер «Кит-кат»', desc:'Прижимная сила растёт, тапы ускоряются.',   base:120, mult:1.6, effect:2 },
+  { id:'sound',   name:'Дорогая музыка',    desc:'Басы в багажнике — тапы бьют сильнее.',     base:200, mult:1.8, effect:4 }
+];
 
-const scoreEl = document.getElementById('score');
-function save() { localStorage.zk_score = score; localStorage.zk_owned = JSON.stringify(owned); }
-function renderScore() { scoreEl.textContent = score.toLocaleString('ru-RU'); }
+// ---------- СОСТОЯНИЕ ----------
+const state = {
+  taps: 0,
+  activeCar: 'vaz2101',
+  ownedCars: ['vaz2101'],
+  upgrades: {}
+};
+UPGRADES.forEach(u => state.upgrades[u.id] = 0);
 
-document.getElementById('tapBtn').addEventListener('pointerdown', function(e) {
-  score++; renderScore(); save();
-  const p = document.createElement('div');
-  p.className = 'plus'; p.textContent = '+1';
-  const r = this.getBoundingClientRect();
-  p.style.left = (e.clientX - r.left - 10) + 'px';
-  p.style.top = (e.clientY - r.top - 20) + 'px';
-  this.appendChild(p);
-  setTimeout(() => p.remove(), 900);
-});
-
-function switchTab(name, el) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen-' + name).classList.add('active');
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  if (name === 'garage') renderGarage();
-  if (name === 'top') renderTop();
+// ---------- ЗАГРУЗКА / СОХРАНЕНИЕ ----------
+function save() {
+  try { localStorage.setItem('zhiguli_save', JSON.stringify(state)); } catch(e){}
+}
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem('zhiguli_save'));
+    if (s) {
+      Object.assign(state, s);
+      UPGRADES.forEach(u => { if (state.upgrades[u.id] === undefined) state.upgrades[u.id] = 0; });
+    }
+  } catch(e){}
 }
 
-function renderGarage() {
-  const list = document.getElementById('garageList');
+// ---------- ЛОГИКА ----------
+function tapValue() {
+  let v = 1;
+  UPGRADES.forEach(u => v += u.effect * state.upgrades[u.id]);
+  return v;
+}
+function upgradeCost(up) {
+  return Math.round(up.base * Math.pow(up.mult, state.upgrades[up.id]));
+}
+function buyCar(car) {
+  if (state.ownedCars.includes(car.id)) return;
+  if (state.taps < car.price) return;
+  state.taps -= car.price;
+  state.ownedCars.push(car.id);
+  state.activeCar = car.id;
+  updateUI();
+}
+function buyUpgrade(up) {
+  const cost = upgradeCost(up);
+  if (state.taps < cost) return;
+  state.taps -= cost;
+  state.upgrades[up.id]++;
+  updateUI();
+}
+
+// ---------- РЕНДЕР ----------
+function renderCars() {
+  const list = document.getElementById('carList');
   list.innerHTML = '';
-  CARS.forEach(car => {
-    const has = owned.includes(car.id);
+  CARS.forEach((car, i) => {
+    const owned = state.ownedCars.includes(car.id);
     const div = document.createElement('div');
-    div.className = 'car-card' + (has ? ' owned' : '');
-    const imgHtml = car.img ? `<img src="${car.img}" style="width:52px;height:52px;border-radius:10px;object-fit:cover;">` : `<div class="car-emoji">${has ? '🚗' : '🔒'}</div>`;
-    div.innerHTML = `${imgHtml}<div class="car-info"><div class="car-name">${car.name}</div><div class="car-cost">${has ? '✅ В гараже' : car.cost.toLocaleString('ru-RU') + ' очков'}</div></div>${has ? '' : `<button class="buy-btn" ${score < car.cost ? 'disabled' : ''} onclick="buy(${car.id})">Купить</button>`}`;
+    div.className = 'car-card ' + (owned ? 'owned' : (state.taps >= car.price ? '' : 'locked'));
+    div.innerHTML = '<div class="car-name">' + car.emoji + ' ' + car.name + '</div>'
+      + '<div class="car-price">'
+      + (owned ? '<span class="owned-tag">Куплено' + (state.activeCar === car.id ? ' · ездим сейчас' : '') + '</span>'
+               : car.price + ' тапов')
+      + '</div>'
+      + (owned ? '' : '<button class="buy-btn" data-car="' + i + '">Купить</button>');
     list.appendChild(div);
+  });
+  list.querySelectorAll('[data-car]').forEach(btn => {
+    btn.onclick = () => buyCar(CARS[+btn.dataset.car]);
+  });
+  document.getElementById('garageCount').textContent = state.ownedCars.length;
+}
+
+function renderTunes() {
+  const list = document.getElementById('tuneList');
+  list.innerHTML = '';
+  UPGRADES.forEach((up, i) => {
+    const lvl = state.upgrades[up.id];
+    const cost = upgradeCost(up);
+    const div = document.createElement('div');
+    div.className = 'tune-card';
+    div.innerHTML = '<div class="tune-title">' + up.name + '<span class="tune-lvl">ур. ' + lvl + '</span></div>'
+      + '<div class="tune-desc">' + up.desc + ' Сейчас: <b>+' + (up.effect * lvl) + '</b> к силе тапа.</div>'
+      + '<button class="buy-btn" data-tune="' + i + '"' + (state.taps < cost ? ' disabled' : '') + '>'
+      + 'Улучшить · ' + cost + ' тапов</button>';
+    list.appendChild(div);
+  });
+  list.querySelectorAll('[data-tune]').forEach(btn => {
+    btn.onclick = () => buyUpgrade(UPGRADES[+btn.dataset.tune]);
   });
 }
 
-function buy(id) {
-  const car = CARS.find(c => c.id === id);
-  if (score >= car.cost && !owned.includes(id)) {
-    score -= car.cost; owned.push(id); save(); renderScore(); renderGarage();
-  }
+function updateUI() {
+  document.getElementById('score').textContent = state.taps;
+  document.getElementById('perTap').textContent = tapValue();
+  document.getElementById('tapZone').textContent = (CARS.find(c => c.id === state.activeCar) || CARS[0]).emoji;
+  renderCars();
+  renderTunes();
+  save();
 }
 
-function renderTop() {
-  const list = document.getElementById('topList');
-  const me = Math.max(score, parseInt(localStorage.zk_best||"0"));
-  localStorage.zk_best = me;
-  list.innerHTML = `<div class="leader-row"><span>🫵 Ты</span><span style="color:#ffd166">${me.toLocaleString('ru-RU')}</span></div>
-  <div class="leader-row" style="color:#888; font-size:12px;"><span>Здесь появится весь топ, когда подключим общий сервер</span></div>`;
+// ---------- ТАПЫ ----------
+const tapZone = document.getElementById('tapZone');
+function doTap(x, y) {
+  state.taps += tapValue();
+  updateUI();
+  const f = document.createElement('div');
+  f.className = 'float';
+  f.textContent = '+' + tapValue();
+  f.style.left = (x - 10) + 'px';
+  f.style.top = (y - 20) + 'px';
+  document.body.appendChild(f);
+  setTimeout(() => f.remove(), 800);
 }
+tapZone.addEventListener('pointerdown', e => doTap(e.clientX, e.clientY));
 
-renderScore();
+// ---------- ВКЛАДКИ ----------
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById('tapScreen').style.display = (tab === 'tapScreen') ? 'flex' : 'none';
+    ['garageScreen','tuneScreen','topScreen'].forEach(id => {
+      document.getElementById(id).classList.toggle('active', id === tab);
+    });
+  };
+});
+
+// ---------- СТАРТ ----------
+load();
+updateUI();
+
+// Telegram: на весь экран и без дрожания
+if (window.Telegram && Telegram.WebApp) {
+  Telegram.WebApp.expand();
+  if (Telegram.WebApp.disableVerticalSwipes) Telegram.WebApp.disableVerticalSwipes();
+}
 </script>
 </body>
 </html>
