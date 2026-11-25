@@ -262,6 +262,13 @@ document.querySelectorAll('nav button').forEach(btn => {
 
 // ---------- СТАРТ ----------
 load();
+ // Приора по ссылке из бота после оплаты
+const params = new URLSearchParams(location.search);
+if (params.get('priora') === '1' && !state.ownedCars.includes('priora')) {
+ state.ownedCars.push('priora');
+ state.activeCar = 'priora';
+ save();
+}
 updateUI();
 
 // Telegram: на весь экран и без дрожания
